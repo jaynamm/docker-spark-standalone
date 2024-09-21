@@ -1,0 +1,76 @@
+---
+x-spark-common: 
+  &spark-common
+  image: bitnami/spark:3.5.2
+  restart: always
+  volumes:
+    - ./apps:/opt/bitnami/spark/apps # Scripts (same path in airflow and spark)
+  environment:
+    - JAVA_HOME=/usr/lib/jvm/java-17-openjdk-arm64
+    - PATH=/usr/lib/jvm/java-17-openjdk-arm64/bin:$PATH
+    - SPARK_RPC_AUTHENTICATION_ENABLED=no
+    - SPARK_RPC_ENCRYPTION_ENABLED=no
+    - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
+    - SPARK_USER=spark
+    - SPARK_MASTER_PORT=7077
+    - SPARK_MASTER_WEBUI_PORT=8080
+    - SPARK_MASTER_URL=spark://spark-master:7077
+
+services:
+  spark-master:
+    <<: *spark-common
+    command: bin/spark-class org.apache.spark.deploy.master.Master
+    hostname: spark-master
+    ports:
+      - "8080:8080"
+      - "7077:7077"
+    environment:
+      - SPARK_MODE=master
+      - SPARK_MASTER_HOST=spark-master
+
+  spark-worker-1:
+    <<: *spark-common
+    command: bin/spark-class org.apache.spark.deploy.worker.Worker spark://spark-master:7077
+    hostname: spark-worker-1
+    ports:
+      - 8081:8081
+    environment:
+      - SPARK_MODE=worker
+      - SPARK_WORKER_CORES=2
+      - SPARK_WORKER_MEMORY=4g
+      - SPARK_SSL_ENABLED=no
+      - SPARK_WORKER_WEBUI_PORT=8081
+      - SPARK_WORKER_PORT=18081
+    depends_on:
+      - spark-master
+
+  spark-worker-2:
+    <<: *spark-common
+    command: bin/spark-class org.apache.spark.deploy.worker.Worker spark://spark-master:7077
+    hostname: spark-worker-2
+    ports:
+      - 8082:8082
+    environment:
+      - SPARK_MODE=worker
+      - SPARK_WORKER_CORES=2
+      - SPARK_WORKER_MEMORY=4g
+      - SPARK_SSL_ENABLED=no
+      - SPARK_WORKER_WEBUI_PORT=8082
+      - SPARK_WORKER_PORT=18081
+    depends_on:
+      - spark-master
+
+  #Jupyter notebook
+  jupyter-spark:
+      image: jupyter/pyspark-notebook:latest
+      depends_on:
+        - spark-master
+        - spark-worker-1
+        - spark-worker-2
+      # network_mode: host
+      ports:
+        - "8888:8888"
+      volumes:
+        - ../notebooks:/home/jovyan/work/notebooks/
+        - ../spark/resources/data:/home/jovyan/work/data/
+        - ../spark/resources/jars:/home/jovyan/work/jars/
