@@ -1,10 +1,14 @@
 ---
 x-spark-common: 
   &spark-common
-  image: bitnami/spark:3.5.2
+  # image: bitnami/spark:3.5.2
+  build:
+    - context: .
+    - dockerfile: Dockerfile
   restart: always
   volumes:
-    - ./apps:/opt/bitnami/spark/apps # Scripts (same path in airflow and spark)
+    - ./apps:/opt/bitnami/spark/apps
+    - ./jars:/opt/bitnami/spark/jars
   environment:
     - JAVA_HOME=/usr/lib/jvm/java-17-openjdk-arm64
     - PATH=/usr/lib/jvm/java-17-openjdk-arm64/bin:$PATH
@@ -67,10 +71,9 @@ services:
         - spark-master
         - spark-worker-1
         - spark-worker-2
-      # network_mode: host
       ports:
         - "8888:8888"
       volumes:
         - ../notebooks:/home/jovyan/work/notebooks/
-        - ../spark/resources/data:/home/jovyan/work/data/
-        - ../spark/resources/jars:/home/jovyan/work/jars/
+        - ../data:/home/jovyan/work/data/
+        - ../jars:/home/jovyan/work/jars/
