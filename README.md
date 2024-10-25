@@ -16,5 +16,3 @@
 ## Docker Setting
 - `Dockerfile`: build image for spark
 - `docker-compose.yaml`: Spark Standalone cluster containers
-
-- test!!!
